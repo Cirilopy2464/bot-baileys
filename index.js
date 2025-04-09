@@ -1,45 +1,28 @@
-// index.js
-const { default: makeWASocket, useSingleFileAuthState } = require("@whiskeysockets/baileys");
-const { Boom } = require("@hapi/boom");
-const Pino = require("pino");
+const { default: makeWASocket, useSingleFileAuthState } = require("baileys");
 const fs = require("fs");
+const pino = require("pino");
 
-// Ruta para guardar la sesión
+// Guardar sesión
 const { state, saveState } = useSingleFileAuthState("./session.json");
 
-// Crear el bot
-const startBot = async () => {
-  const sock = makeWASocket({
-    auth: state,
-    printQRInTerminal: true,
-    logger: Pino({ level: "silent" })
+const sock = makeWASocket({
+  auth: state,
+  printQRInTerminal: true,
+  logger: pino({ level: "silent" }),
+});
+
+sock.ev.on("creds.update", saveState);
+
+sock.ev.on("messages.upsert", async ({ messages }) => {
+  const m = messages[0];
+  if (!m.message || m.key.fromMe) return;
+
+  const numero = m.key.remoteJid;
+  const texto = m.message.conversation || m.message.extendedTextMessage?.text || "";
+
+  console.log(`📩 Mensaje de ${numero}: ${texto}`);
+
+  await sock.sendMessage(numero, {
+    text: "👋 ¡Hola! Escribí un número de servicio para ver los precios."
   });
-
-  sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
-    if (connection === "close") {
-      const shouldReconnect =
-        lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-      if (shouldReconnect) startBot();
-    } else if (connection === "open") {
-      console.log("✅ Bot conectado correctamente");
-    }
-  });
-
-  sock.ev.on("creds.update", saveState);
-
-  sock.ev.on("messages.upsert", async ({ messages, type }) => {
-    const msg = messages[0];
-    if (!msg.message || msg.key.fromMe) return;
-
-    const numero = msg.key.remoteJid;
-    const texto = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "";
-    const mensaje = texto.toLowerCase().trim();
-
-    // Bienvenida simple de prueba (puedes personalizar)
-    const bienvenida = "Hola ✨ escribí el *número del servicio* para ver los precios.";
-
-    await sock.sendMessage(numero, { text: bienvenida });
-  });
-};
-
-startBot();
+});
