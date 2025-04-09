@@ -1,8 +1,7 @@
-const { default: makeWASocket, useSingleFileAuthState } = require("baileys");
-const fs = require("fs");
+const { default: makeWASocket, useSingleFileAuthState } = require("@whiskeysockets/baileys");
 const pino = require("pino");
 
-// Guardar sesión
+// Autenticación
 const { state, saveState } = useSingleFileAuthState("./session.json");
 
 const sock = makeWASocket({
@@ -17,8 +16,8 @@ sock.ev.on("messages.upsert", async ({ messages }) => {
   const m = messages[0];
   if (!m.message || m.key.fromMe) return;
 
-  const numero = m.key.remoteJid;
   const texto = m.message.conversation || m.message.extendedTextMessage?.text || "";
+  const numero = m.key.remoteJid;
 
   console.log(`📩 Mensaje de ${numero}: ${texto}`);
 
