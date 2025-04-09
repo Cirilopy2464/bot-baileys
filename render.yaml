@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: bot-baileys
+    env: node
+    plan: free
+    buildCommand: ""
+    startCommand: node index.js
+    autoDeploy: true
+    envVars: []
